@@ -11,4 +11,4 @@ class RequestSpecs:
     @staticmethod
     def auth_headers():
         ...
-    
+            

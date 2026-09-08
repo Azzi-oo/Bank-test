@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import uuid
+from datetime import datetime
 
 import pytest
 
@@ -39,6 +40,13 @@ def admin_client():
     assert_status(response, 200)
 
     return AdminClient(BASE_URL, response.json()["token"])
+
+
+@pytest.fixture
+def username():
+    now = datetime.now()
+
+    return f"U{now:%d%H%M%S}{now.microsecond % 100000:05d}"
 
 
 @pytest.fixture
