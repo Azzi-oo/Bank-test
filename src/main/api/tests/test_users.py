@@ -1,9 +1,7 @@
 import pytest
 
 from src.main.api.config import USER_PASSWORD
-from src.main.api.foundation.endpoint import Endpoint
-from src.main.api.models.requests import CreateUserRequest, UserRole
-from src.main.api.specs.response_specs import ResponseSpecs
+from src.main.api.models.requests import CreateUserRequest, LoginRequest, UserRole
 
 
 @pytest.mark.api
@@ -29,14 +27,20 @@ class TestUsers:
         ids=["non-latin-name", "short-name", "special-character", "short-password", "weak-password"],
     )
     def test_admin_cannot_create_user_with_invalid_data(
-        self, admin_steps, created_obj, username, invalid_username, password,
+        self, admin_steps, username, invalid_username, password,
     ):
-        # Dictionaries deliberately bypass local request validation in negative tests.
-        response = admin_steps.raw(Endpoint.ADMIN_CREATE_USER).post({
+        admin_steps.create_invalid_user({
             "username": invalid_username if invalid_username is not None else username,
             "password": password,
             "role": UserRole.USER.value,
         })
-        if response.status_code == 200:
-            created_obj.append(response.json()["id"])
-        ResponseSpecs.request_bad()(response)
+
+    def test_created_user_can_login(self, admin_steps, create_user_request):
+        login = admin_steps.login_user(LoginRequest(
+            username=create_user_request.username,
+            password=create_user_request.password,
+        ))
+
+        assert login.token
+        assert login.user.username == create_user_request.username
+        assert login.user.role == create_user_request.role

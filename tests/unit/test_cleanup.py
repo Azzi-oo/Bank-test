@@ -43,3 +43,19 @@ def test_cleanup_does_nothing_without_created_users():
     steps = Mock(spec=AdminSteps)
     clean_user([], steps)
     steps.delete_user.assert_not_called()
+
+
+def test_unexpectedly_created_invalid_user_is_registered_before_failure():
+    session = Mock(spec=Session)
+    response = Response()
+    response.status_code = 200
+    response._content = b'{"id": 24}'
+    session.request.return_value = response
+    objects = []
+    steps = AdminSteps(created_objects=objects, session=session)
+
+    with pytest.raises(AssertionError, match='Expected HTTP 400, got 200'):
+        steps.create_invalid_user({'username': 'ab'})
+
+    assert objects == [24]
+    assert session.request.call_args.kwargs['json'] == {'username': 'ab'}

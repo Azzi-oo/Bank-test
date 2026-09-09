@@ -7,7 +7,7 @@ from src.main.api.specs.response_specs import ResponseSpecs
 
 
 class ValidateCrudRequester:
-    """Validate status before deserializing the success response schema."""
+    """Проверяет статус ответа перед его преобразованием в модель успешного ответа."""
 
     def __init__(self, request_spec, endpoint, response_spec=None, **kwargs):
         self.endpoint = endpoint

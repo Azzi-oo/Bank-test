@@ -1,6 +1,10 @@
 from enum import StrEnum
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+from src.main.api.generators.creation_rule import CreationRule
 
 
 class UserRole(StrEnum):
@@ -19,9 +23,11 @@ class LoginRequest(ApiRequest):
 
 
 class CreateUserRequest(ApiRequest):
-    username: str = Field(min_length=3, max_length=15)
-    password: str
-    role: UserRole
+    username: Annotated[str, CreationRule(regex=r"^[A-Za-z0-9]{15}$")] = Field(
+        min_length=3, max_length=15,
+    )
+    password: Annotated[str, CreationRule(regex=r"^[A-Z]{3}[a-z][0-9]{2}[!$_]{4}$")]
+    role: Annotated[UserRole, CreationRule(regex=r"^ROLE_USER$")]
 
 
 class DepositRequest(ApiRequest):

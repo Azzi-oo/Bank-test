@@ -54,3 +54,4 @@ class Endpoint(Enum):
     CREDIT_REPAY = EndpointConfiguration(
         "/api/credit/repay", "POST", 200, RepayCreditRequest, RepayCreditResponse,
     )
+    CREATE_ACCOUNT = ACCOUNT_CREATE

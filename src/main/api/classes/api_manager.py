@@ -6,7 +6,7 @@ from src.main.api.steps.user_steps import UserSteps
 
 
 class ApiManager:
-    """Own a session for one test and keep authentication local to each steps object."""
+    """Управляет сессией одного теста и хранит данные авторизации отдельно для каждого объекта шагов."""
 
     def __init__(self, base_url: str = BASE_URL):
         self.base_url = base_url

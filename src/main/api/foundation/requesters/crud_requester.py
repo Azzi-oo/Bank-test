@@ -5,7 +5,7 @@ from src.main.api.foundation.http_requester import HttpRequester, RequestBody
 
 
 class CrudRequester(HttpRequester):
-    """Send raw payloads as well as models, including invalid data for negative tests."""
+    """Отправляет данные без валидации и модели, включая некорректные данные для негативных тестов."""
 
     def _send(self, method: str, model: RequestBody = None, **path_params: int) -> Response:
         config = self.endpoint.value

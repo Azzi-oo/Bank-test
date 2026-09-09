@@ -1,23 +1,33 @@
 from typing import cast
 
 from src.main.api.foundation.endpoint import Endpoint
+from src.main.api.foundation.requesters.validate_crud_requester import ValidateCrudRequester
+from src.main.api.specs.request_specs import RequestSpecs
 from src.main.api.models.account import AccountResponse, TransferResponse
 from src.main.api.models.auth import LoginResponse
 from src.main.api.models.credit import CreditHistoryResponse, CreditResponse, RepayCreditResponse
 from src.main.api.models.requests import (
-    CreditRequest, DepositRequest, LoginRequest, RepayCreditRequest, TransferRequest,
+    CreateUserRequest, CreditRequest, DepositRequest, LoginRequest, RepayCreditRequest, TransferRequest,
 )
 from src.main.api.steps.base_steps import BaseSteps
 
 
 class UserSteps(BaseSteps):
     def login(self, username: str, password: str) -> LoginResponse:
-        return cast(LoginResponse, self.validated(Endpoint.AUTH_LOGIN).post(
+        return cast(LoginResponse, ValidateCrudRequester(
+            RequestSpecs.unauth_headers(), Endpoint.AUTH_LOGIN,
+            base_url=self.base_url, session=self.session,
+        ).post(
             LoginRequest(username=username, password=password),
         ))
 
-    def create_account(self) -> AccountResponse:
-        return cast(AccountResponse, self.validated(Endpoint.ACCOUNT_CREATE).post())
+    def create_account(self, create_user_request: CreateUserRequest | None = None) -> AccountResponse:
+        """Создаёт счёт в текущей сессии или по данным пользователя, сохраняя текущий токен."""
+        if create_user_request is not None:
+            login = self.login(create_user_request.username, create_user_request.password)
+            user = UserSteps(base_url=self.base_url, token=login.token, session=self.session)
+            return user.create_account()
+        return cast(AccountResponse, self.validated(Endpoint.CREATE_ACCOUNT).post())
 
     def deposit(self, account_id: int, amount: float) -> AccountResponse:
         return cast(AccountResponse, self.validated(Endpoint.ACCOUNT_DEPOSIT).post(
