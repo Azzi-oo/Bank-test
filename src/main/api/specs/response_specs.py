@@ -1,26 +1,27 @@
-from http import HTTPStatus
-from requests import Request, Response
+from collections.abc import Callable
+
+from requests import Response
+
+ResponseSpec = Callable[[Response], None]
 
 
 class ResponseSpecs:
     @staticmethod
-    def request_ok():
-        def confirm(response: Response):
-            assert response.status_code == HTTPStatus.OK, response.text
-            
+    def status(expected: int) -> ResponseSpec:
+        def confirm(response: Response) -> None:
+            assert response.status_code == expected, (
+                f"Expected HTTP {expected}, got {response.status_code}: {response.text}"
+            )
         return confirm
-    
+
     @staticmethod
-    def request_created():
-        def confirm(response: Response):
-            assert response.status_code == HTTPStatus.CREATED, response.text
-            
-        return confirm
-            
-            
+    def request_ok() -> ResponseSpec:
+        return ResponseSpecs.status(200)
+
     @staticmethod
-    def request_bad():
-        def confirm(response: Response):
-            assert response.status_code == HTTPStatus.BAD_REQUEST, response.text
-            
-        return confirm
+    def request_created() -> ResponseSpec:
+        return ResponseSpecs.status(201)
+
+    @staticmethod
+    def request_bad() -> ResponseSpec:
+        return ResponseSpecs.status(400)

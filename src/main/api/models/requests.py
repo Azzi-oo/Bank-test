@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserRole(StrEnum):
@@ -9,13 +9,39 @@ class UserRole(StrEnum):
     CREDIT_SECRET = "ROLE_CREDIT_SECRET"
 
 
-class CreateUserRequest(BaseModel):
+class ApiRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class LoginRequest(ApiRequest):
+    username: str
+    password: str
+
+
+class CreateUserRequest(ApiRequest):
     username: str = Field(min_length=3, max_length=15)
     password: str
     role: UserRole
 
 
-class CreditRequest(BaseModel):
-    account_id: int = Field(gt=0)
+class DepositRequest(ApiRequest):
+    account_id: int = Field(gt=0, alias="accountId")
     amount: float = Field(gt=0)
-    term_months: int = Field(ge=1, le=60)
+
+
+class TransferRequest(ApiRequest):
+    from_account_id: int = Field(gt=0, alias="fromAccountId")
+    to_account_id: int = Field(gt=0, alias="toAccountId")
+    amount: float = Field(gt=0)
+
+
+class CreditRequest(ApiRequest):
+    account_id: int = Field(gt=0, alias="accountId")
+    amount: float = Field(gt=0)
+    term_months: int = Field(ge=1, le=60, alias="termMonths")
+
+
+class RepayCreditRequest(ApiRequest):
+    credit_id: int = Field(gt=0, alias="creditId")
+    account_id: int = Field(gt=0, alias="accountId")
+    amount: float = Field(gt=0)

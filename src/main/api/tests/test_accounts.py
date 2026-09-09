@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 from src.main.api.models.requests import UserRole
@@ -8,24 +10,17 @@ class TestAccounts:
     def test_user_can_create_account(self, make_user):
         user = make_user(UserRole.USER)
 
-        response = user.accounts.create_account()
+        account = user.create_account()
 
-        assert response.status_code == 201, response.text
-        assert response.json()["id"] > 0
-        assert response.json()["balance"] == 0
+        assert account.id > 0
+        assert account.balance == 0
 
     def test_user_can_deposit_money(self, make_user):
         user = make_user(UserRole.USER)
+        account = user.create_account()
 
-        account_response = user.accounts.create_account()
-        assert account_response.status_code == 201, account_response.text
+        deposit = user.deposit(account.id, 1000.50)
 
-        account_id = account_response.json()["id"]
-
-        deposit_response = user.accounts.deposit(
-            account_id=account_id,
-            amount=1000.50,
-        )
-
-        assert deposit_response.status_code == 200, deposit_response.text
-        assert deposit_response.json()["balance"] == 1000.50
+        assert deposit.id == account.id
+        assert deposit.balance == Decimal("1000.50")
+        assert user.get_account(account.id).balance == Decimal("1000.50")

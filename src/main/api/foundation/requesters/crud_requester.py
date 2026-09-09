@@ -1,31 +1,33 @@
-
-import requests
-
-from typing import Optional
-from requests import Response
 from pydantic import BaseModel
-from main.api.foundation.endpoint import EndpointConfiguration
-from main.api.foundation.http_requester import HttpRequester
+from requests import Response
+
+from src.main.api.foundation.http_requester import HttpRequester, RequestBody
 
 
 class CrudRequester(HttpRequester):
-    def post(self, model: Optional[BaseModel]) -> BaseModel | Response:
-        body = model.model_dump() if model is not None else ""
-        
-        response = requests.post(
-            url=f"{Config.fetch("backendUrl")}{self.endpoint.value.url}",
-            headers=self.request_spec,
-            json=body
-        )
-        self.response_spec(response)
+    """Send raw payloads as well as models, including invalid data for negative tests."""
+
+    def _send(self, method: str, model: RequestBody = None, **path_params: int) -> Response:
+        config = self.endpoint.value
+        if method != config.method:
+            raise ValueError(f"{self.endpoint.name} supports {config.method}, not {method}")
+        path = config.url.format(**path_params)
+        kwargs = {}
+        if model is not None:
+            kwargs["json"] = (
+                model.model_dump(mode="json", by_alias=True)
+                if isinstance(model, BaseModel) else model
+            )
+        response = self.client.request(method, path, headers=self.request_spec, **kwargs)
+        if self.response_spec is not None:
+            self.response_spec(response)
         return response
-    
-    def delete(self, user_id: int) -> BaseModel | Response:
-        response = requests.delete(
-            url="/admin/create",
-            headers=self.request_spec
-        )
-        self.response_spec(response)
-        return response
-        
-       
+
+    def post(self, model: RequestBody = None, **path_params: int) -> Response:
+        return self._send("POST", model, **path_params)
+
+    def get(self, **path_params: int) -> Response:
+        return self._send("GET", **path_params)
+
+    def delete(self, **path_params: int) -> Response:
+        return self._send("DELETE", **path_params)

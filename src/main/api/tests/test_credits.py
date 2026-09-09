@@ -1,98 +1,63 @@
 import pytest
 
+from src.main.api.foundation.endpoint import Endpoint
 from src.main.api.models.requests import UserRole
+from src.main.api.specs.response_specs import ResponseSpecs
 
 
 @pytest.mark.api
 class TestCredits:
     def test_user_with_credit_role_can_request_credit(self, make_user):
         user = make_user(UserRole.CREDIT_SECRET)
+        account = user.create_account()
 
-        account_response = user.accounts.create_account()
-        assert account_response.status_code == 201, account_response.text
+        credit = user.request_credit(account.id, 5000, 12)
 
-        account_id = account_response.json()["id"]
-
-        response = user.credits.request_credit(
-            account_id=account_id,
-            amount=5000,
-            term_months=12,
-        )
-
-        assert response.status_code == 201, response.text
+        assert credit.id == account.id
+        assert credit.amount == 5000
+        history = user.get_credit_history().credits
+        assert len(history) == 1
+        assert history[0].credit_id == credit.credit_id
+        assert history[0].account_id == account.id
+        assert history[0].term_months == 12
+        assert history[0].balance == -5000
+        assert user.get_account(account.id).balance == 5000
 
     def test_user_without_credit_role_cannot_request_credit(self, make_user):
         user = make_user(UserRole.USER)
+        account = user.create_account()
 
-        account_response = user.accounts.create_account()
-        assert account_response.status_code == 201, account_response.text
+        user.raw(Endpoint.CREDIT_REQUEST, ResponseSpecs.status(403)).post({
+            "accountId": account.id, "amount": 5000, "termMonths": 12,
+        })
 
-        response = user.credits.request_credit(
-            account_id=account_response.json()["id"],
-            amount=5000,
-            term_months=12,
-        )
-
-        assert response.status_code == 403, response.text
+        assert user.get_account(account.id).balance == 0
 
     def test_credit_user_can_fully_repay_own_credit(self, make_user):
         user = make_user(UserRole.CREDIT_SECRET)
+        account = user.create_account()
+        credit = user.request_credit(account.id, 5000, 12)
 
-        account_response = user.accounts.create_account()
-        assert account_response.status_code == 201, account_response.text
-        account_id = account_response.json()["id"]
+        repayment = user.repay_credit(credit.credit_id, account.id, 5000)
 
-        request_response = user.credits.request_credit(
-            account_id=account_id,
-            amount=5000,
-            term_months=12,
-        )
-        assert request_response.status_code == 201, request_response.text
-
-        history_response = user.credits.get_history()
-        assert history_response.status_code == 200, history_response.text
-
-        credits = history_response.json()["credits"]
-        credit = next(
-            item for item in credits
-            if item["accountId"] == account_id
-        )
-
-        repay_response = user.credits.repay_credit(
-            credit_id=credit["creditId"],
-            account_id=account_id,
-            amount=5000,
-        )
-
-        assert repay_response.status_code == 200, repay_response.text
+        assert repayment.credit_id == credit.credit_id
+        assert repayment.amount_deposited == 5000
+        history = user.get_credit_history().credits
+        assert len(history) == 1
+        assert history[0].credit_id == credit.credit_id
+        assert history[0].balance == 0
+        assert user.get_account(account.id).balance == 0
 
     def test_partial_credit_repayment_returns_422(self, make_user):
         user = make_user(UserRole.CREDIT_SECRET)
+        account = user.create_account()
+        credit = user.request_credit(account.id, 5000, 12)
+        before_account = user.get_account(account.id)
+        before_history = user.get_credit_history()
 
-        account = user.accounts.create_account()
-        assert account.status_code == 201, account.text
-        account_id = account.json()["id"]
+        user.raw(Endpoint.CREDIT_REPAY, ResponseSpecs.status(422)).post({
+            "creditId": credit.credit_id, "accountId": account.id, "amount": 1000,
+        })
 
-        credit = user.credits.request_credit(
-            account_id=account_id,
-            amount=5000,
-            term_months=12,
-        )
-        assert credit.status_code == 201, credit.text
-
-        history = user.credits.get_history()
-        assert history.status_code == 200, history.text
-
-        credit_id = next(
-            item["creditId"]
-            for item in history.json()["credits"]
-            if item["accountId"] == account_id
-        )
-
-        response = user.credits.repay_credit(
-            credit_id=credit_id,
-            account_id=account_id,
-            amount=1000,
-        )
-
-        assert response.status_code == 422, response.text
+        assert user.get_account(account.id) == before_account
+        assert user.get_credit_history() == before_history
