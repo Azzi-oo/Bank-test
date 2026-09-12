@@ -2,6 +2,8 @@ import uuid
 
 import pytest
 
+from src.main.api.fixtures.db_fixture import bank_db, db_engine, db_session, user_db  # noqa: F401
+
 from src.main.api.fixtures.admin_fixture import admin_api, admin_steps  # noqa: F401
 from src.main.api.fixtures.api_fixture import api_manager  # noqa: F401
 from src.main.api.fixtures.object_fixture import created_obj  # noqa: F401
