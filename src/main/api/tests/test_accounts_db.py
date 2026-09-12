@@ -1,7 +1,9 @@
 import allure
 import pytest
 
-from src.main.api.models.requests import UserRole
+from src.main.api.fixtures.bank_fixture import AccountContext
+from src.main.api.generators.bank_data_generator import BankTestData
+from src.main.api.steps.bank_db_steps import BankDbSteps
 
 
 @allure.epic("Bank API")
@@ -13,11 +15,11 @@ from src.main.api.models.requests import UserRole
 @pytest.mark.db
 class TestAccountsDb:
     @allure.title("Deposit: баланс и транзакция сохраняются в БД")
-    def test_deposit_is_persisted(self, make_user, bank_db_steps, bank_data):
-        user = make_user(UserRole.USER)
-        account = user.create_account()
-        bank_db_steps.check_empty_account(account.id)
+    def test_deposit_is_persisted(
+        self, deposit_context: AccountContext, bank_db_steps: BankDbSteps, bank_data: BankTestData,
+    ) -> None:
+        response = deposit_context.user.deposit(deposit_context.account.id, bank_data.deposit_amount)
 
-        response = user.deposit(account.id, bank_data.deposit_amount)
-
-        bank_db_steps.check_deposit(account, response, amount=bank_data.deposit_amount)
+        assert response.id == deposit_context.account.id
+        assert response.balance == bank_data.deposit_amount
+        bank_db_steps.check_deposit(deposit_context.account, amount=bank_data.deposit_amount)

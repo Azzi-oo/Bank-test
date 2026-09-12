@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from src.main.api.classes.api_manager import ApiManager
 import pytest
 
 from src.main.api.steps.admin_steps import AdminSteps
@@ -16,7 +18,7 @@ def clean_user(objects: list[int], admin_steps: AdminSteps) -> None:
 
 
 @pytest.fixture
-def created_obj(admin_api):
+def created_obj(admin_api: ApiManager) -> Iterator[list[int]]:
     objects = admin_api.created_objects
     try:
         yield objects
