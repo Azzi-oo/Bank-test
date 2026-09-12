@@ -1,7 +1,5 @@
 import allure
 
-from decimal import Decimal
-
 import pytest
 
 from src.main.api.models.requests import UserRole
@@ -40,13 +38,13 @@ class TestAccounts:
     @allure.title("Пополнение увеличивает баланс счёта")
     @allure.story("Положительные сценарии")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_user_can_deposit_money(self, make_user):
+    def test_user_can_deposit_money(self, make_user, bank_data):
         user = make_user(UserRole.USER)
         account = user.create_account()
 
-        deposit = user.deposit(account.id, 1000.50)
+        deposit = user.deposit(account.id, bank_data.deposit_amount)
 
         with allure.step("Проверить результат операции"):
             assert deposit.id == account.id
-            assert deposit.balance == Decimal("1000.50")
-            assert user.get_account(account.id).balance == Decimal("1000.50")
+            assert deposit.balance == bank_data.deposit_amount
+            assert user.get_account(account.id).balance == bank_data.deposit_amount

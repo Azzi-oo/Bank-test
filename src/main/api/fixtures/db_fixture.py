@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from src.main.api.db.engine import create_db_engine
 from src.main.api.db.models.crud.user_crud import UserCrudDb
 from src.main.api.db.models.crud.bank_crud import BankCrudDb
+from src.main.api.steps.bank_db_steps import BankDbSteps
 
 
 @pytest.fixture(scope="session")
@@ -35,3 +36,8 @@ def user_db(db_session):
 @pytest.fixture
 def bank_db(db_session):
     return BankCrudDb(db_session)
+
+
+@pytest.fixture
+def bank_db_steps(bank_db):
+    return BankDbSteps(bank_db)
