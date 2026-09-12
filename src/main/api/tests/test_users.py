@@ -1,19 +1,29 @@
+import allure
+
 import pytest
 
 from src.main.api.config import USER_PASSWORD
 from src.main.api.models.requests import CreateUserRequest, LoginRequest, UserRole
 
 
+@allure.epic("Bank API")
+@allure.feature("Пользователи")
+@allure.parent_suite("API-тесты")
+@allure.suite("Пользователи")
 @pytest.mark.api
 class TestUsers:
+    @allure.title("Администратор создаёт обычного пользователя")
+    @allure.story("Положительные сценарии")
+    @allure.severity(allure.severity_level.CRITICAL)
     def test_admin_can_create_regular_user(self, admin_steps, username):
         user = admin_steps.create_user(CreateUserRequest(
             username=username, password=USER_PASSWORD, role=UserRole.USER,
         ))
 
-        assert user.username == username
-        assert user.role == UserRole.USER
-        assert user.id > 0
+        with allure.step("Проверить результат операции"):
+            assert user.username == username
+            assert user.role == UserRole.USER
+            assert user.id > 0
 
     @pytest.mark.parametrize(
         "invalid_username,password",
@@ -26,6 +36,9 @@ class TestUsers:
         ],
         ids=["non-latin-name", "short-name", "special-character", "short-password", "weak-password"],
     )
+    @allure.title("Некорректные данные пользователя: HTTP 400")
+    @allure.story("Негативные сценарии")
+    @allure.severity(allure.severity_level.NORMAL)
     def test_admin_cannot_create_user_with_invalid_data(
         self, admin_steps, username, invalid_username, password,
     ):
@@ -35,12 +48,16 @@ class TestUsers:
             "role": UserRole.USER.value,
         })
 
+    @allure.title("Созданный пользователь может войти")
+    @allure.story("Положительные сценарии")
+    @allure.severity(allure.severity_level.CRITICAL)
     def test_created_user_can_login(self, admin_steps, create_user_request):
         login = admin_steps.login_user(LoginRequest(
             username=create_user_request.username,
             password=create_user_request.password,
         ))
 
-        assert login.token
-        assert login.user.username == create_user_request.username
-        assert login.user.role == create_user_request.role
+        with allure.step("Проверить результат операции"):
+            assert login.token
+            assert login.user.username == create_user_request.username
+            assert login.user.role == create_user_request.role

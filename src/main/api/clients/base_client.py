@@ -1,8 +1,10 @@
+import allure
 import requests
 from requests.structures import CaseInsensitiveDict
 
 from src.main.api.config import REQUEST_TIMEOUT
 from src.main.api.specs.request_specs import RequestSpecs
+from src.main.api.reporting import attach_json
 
 
 class BaseClient:
@@ -25,9 +27,20 @@ class BaseClient:
         headers.update(kwargs.pop("headers", {}) or {})
         kwargs.setdefault("timeout", REQUEST_TIMEOUT)
         send = self.session.request if self.session is not None else requests.request
-        return send(
-            method, f"{self.base_url}/{path.lstrip('/')}", headers=headers, **kwargs,
-        )
+        with allure.step(f"HTTP {method} {path}"):
+            attach_json("Запрос", {"method": method, "path": path,
+                                   "json": kwargs.get("json")})
+            response = send(
+                method, f"{self.base_url}/{path.lstrip('/')}", headers=headers, **kwargs,
+            )
+            # Не прикладываем произвольный текст/HTML: он может содержать секреты.
+            if isinstance(response, requests.Response):
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = "Ответ без JSON (тело не приложено)"
+                attach_json("Ответ", {"status": response.status_code, "json": body})
+            return response
 
     def get(self, path: str, **kwargs) -> requests.Response:
         return self.request("GET", path, **kwargs)

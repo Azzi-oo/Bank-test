@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+import allure
 from requests import Response
 
 ResponseSpec = Callable[[Response], None]
@@ -9,9 +10,10 @@ class ResponseSpecs:
     @staticmethod
     def status(expected: int) -> ResponseSpec:
         def confirm(response: Response) -> None:
-            assert response.status_code == expected, (
-                f"Expected HTTP {expected}, got {response.status_code}: {response.text}"
-            )
+            with allure.step(f"Проверить HTTP-статус: {expected}"):
+                assert response.status_code == expected, (
+                    f"Expected HTTP {expected}, got {response.status_code}"
+                )
         return confirm
 
     @staticmethod

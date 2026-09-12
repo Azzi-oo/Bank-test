@@ -1,5 +1,53 @@
 # Bank API tests
 
+## Allure-отчёт
+
+Плагин `allure-pytest` устанавливается из `requirements.txt`. Allure CLI
+на macOS устанавливается отдельно: `brew install allure`.
+
+```sh
+source venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pytest -v
+allure serve allure-results
+```
+
+Для запуска без банковского API используйте `python -m pytest tests/unit -v`.
+Настройки `pytest.ini` включают сбор результатов и очистку предыдущего прогона.
+Чтобы сохранить HTML-отчёт:
+
+```sh
+allure generate allure-results --clean -o allure-report
+allure open allure-report
+```
+
+В разделе Behaviors API-сценарии сгруппированы по `Bank API → функциональность →
+положительные/негативные сценарии`. У тестов русские названия и важность.
+Внутри теста видны действия пользователя, вложенные HTTP-вызовы, проверки статуса
+и результата операции. Подготовка и удаление пользователей видны в фикстурах.
+В HTTP-шаге приложены JSON запроса и ответа. Поля с password, token,
+authorization, cookie и secret в названии маскируются рекурсивно;
+заголовки и не-JSON тела не прикладываются. Это фильтрация этих вложений,
+а не всех возможных логов и traceback: не публикуйте отчёты с реальными секретами.
+
+Для нового теста добавьте название и историю, а проверки оформите контекстным шагом:
+
+```python
+import allure
+
+@allure.title("Новый счёт имеет нулевой баланс")
+@allure.story("Положительные сценарии")
+def test_new_account(make_user):
+    user = make_user(UserRole.USER)
+    account = user.create_account()
+    with allure.step("Проверить начальный баланс"):
+        assert account.balance == 0
+```
+
+Общие методы Steps уже содержат шаги; повторять их в тесте не нужно.
+Для методов с паролем используется `with allure.step(...)`, чтобы аргументы
+метода не записывались автоматически как параметры декорированного шага.
+
 Python 3.12, pytest, requests и Pydantic 2. Тестируемое банковское приложение
 запускается отдельно; по умолчанию API доступен на `http://localhost:4111`.
 
